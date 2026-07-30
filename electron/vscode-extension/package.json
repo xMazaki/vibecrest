@@ -1,0 +1,22 @@
+{
+  "name": "terminal-focus",
+  "displayName": "Vibe Crest Terminal Focus",
+  "description": "Donne le focus au terminal exact d'une session Claude Code, appelé par Vibe Crest.",
+  "publisher": "vibecrest",
+  "version": "0.1.0",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": ["Other"],
+  "activationEvents": ["onUri"],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "vibeCrest.focusLastTerminal",
+        "title": "Vibe Crest: donner le focus au dernier terminal ciblé"
+      }
+    ]
+  }
+}

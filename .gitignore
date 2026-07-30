@@ -1,0 +1,19 @@
+# Dépendances et sorties de compilation
+node_modules/
+dist/
+release/
+build/
+
+# Bancs de rendu et captures de développement
+preview*.png
+shot*.png
+edge-*.png
+
+# Réglages locaux d'outillage, propres à une machine
+.claude/
+.vscode/
+*.local
+
+# Journaux
+*.log
+npm-debug.log*

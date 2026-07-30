@@ -1,0 +1,2350 @@
+/* Vibe Crest, feuille de style unique.
+
+   Direction artistique
+   --------------------
+   Monochrome chaud, un seul accent. Les noirs sont légèrement ambrés plutôt
+   que neutres, les blancs tirent sur l'os. L'or est la seule chromie de
+   l'interface et il ne sert qu'à une chose : signaler que l'agent a besoin de
+   vous. Une couleur qui ne veut dire qu'une chose se lit sans apprentissage.
+
+   La hiérarchie des actions passe par le poids, pas par la teinte. Le bouton
+   principal est plein et clair, le secondaire est un simple contour. C'est la
+   grammaire des boîtes de dialogue macOS, et elle évite le couple bleu et
+   rouge qui code l'intention à la place de l'utilisateur.
+
+   L'activité ne se colore pas non plus : elle se signale par le mouvement,
+   une pastille qui respire, et par une chronologie à filet plutôt que par des
+   bandes de couleur en marge.
+
+   Typographie
+   -----------
+   Segoe UI Variable, la famille variable native de Windows 11, exploitée par
+   ses trois tailles optiques. Display pour les titres avec un crénage
+   resserré, Text pour le corps, Small pour les métadonnées, où les fûts sont
+   épaissis pour rester lisibles sous 12 pixels. Cascadia Mono pour le code.
+
+   Matière
+   -------
+   Un grain fin en surimpression sur les surfaces et les boutons. Il casse
+   l'aplat parfait des dégradés, qui est ce qui fait paraître une interface
+   plate et synthétique. */
+
+:root {
+  /* Noirs chauds */
+  --surface: #0a0908;
+  --surface-2: #131210;
+  --surface-3: #1c1a17;
+  --surface-4: #262320;
+
+  --stroke: rgba(255, 249, 238, 0.068);
+  --stroke-2: rgba(255, 249, 238, 0.13);
+  --stroke-3: rgba(255, 249, 238, 0.2);
+
+  /* Blancs chauds */
+  --text: #f2efe9;
+  --text-2: #a29c92;
+  --text-3: #6e6961;
+
+  /* Os : la matière du bouton principal */
+  --bone: #ece7dd;
+  --bone-hi: #f7f3ec;
+  --bone-lo: #d4cec1;
+  --bone-ink: #15130f;
+
+  /* Or : accent unique, réservé à "l'agent vous attend" */
+  --gold: #d8a544;
+  --gold-hi: #ecc06b;
+  --gold-wash: rgba(216, 165, 68, 0.09);
+  --gold-edge: rgba(216, 165, 68, 0.3);
+
+  --ui-display: "Segoe UI Variable Display", "Segoe UI", system-ui, sans-serif;
+  --ui-text: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --ui-small: "Segoe UI Variable Small", "Segoe UI", system-ui, sans-serif;
+  --mono: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+
+  /* Gamme de la consommation.
+
+     C'est le seul endroit où la couleur encode une quantité et une catégorie
+     plutôt qu'une sollicitation. La teinte est celle de Claude, déclinée en une
+     rampe chaude du plus coûteux au plus anodin, ce qui conserve la matière du
+     reste de l'interface. L'or n'y figure jamais, pour ne pas diluer son sens. */
+  --claude: #d97757;
+  --u-output: #d97757;
+  --u-input: #c1885f;
+  --u-cache-write: #8e7457;
+  --u-cache-read: #6d6355;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.82' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: var(--ui-text);
+  font-variation-settings: "opsz" 12;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+  user-select: none;
+  cursor: default;
+}
+
+body[data-view="crest"] {
+  background: transparent;
+}
+
+body[data-view="settings"],
+body[data-view="onboarding"] {
+  background: var(--surface);
+  overflow-y: auto;
+  cursor: auto;
+}
+
+body[data-view="usage"] {
+  background: transparent;
+  cursor: auto;
+  overflow: hidden;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+/* Anneau de focus visible au clavier uniquement. En os plutôt qu'en or :
+   l'or ne signifie qu'une chose ici, une sollicitation de l'agent. */
+:focus-visible {
+  outline: 2px solid var(--bone);
+  outline-offset: 2px;
+}
+
+/* Respect du réglage système de réduction des animations. Le rendu React
+   s'appuie de son côté sur useReducedMotion ; cette règle couvre tout ce qui
+   est purement déclaratif. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ----------------------------------------------------------------- */
+/* Pill                                                              */
+/* ----------------------------------------------------------------- */
+
+/* La fenêtre conteneur couvre exactement la région où le pill peut grandir.
+   Le processus principal calcule cette région et l'alignement, le rendu se
+   contente de suivre : c'est ce qui garantit qu'un panneau ouvert dans un coin
+   ne sort jamais de l'écran, quel que soit le bord d'accrochage. */
+.stage {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}
+
+/* Le pill est positionné au pixel dans le conteneur, à partir de son ancre et
+   de sa taille mesurée. Un alignement en boîte flexible ne saurait pas rester
+   centré sur un point mobile sans à-coups. */
+.crest {
+  position: absolute;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 238, 0.032), rgba(255, 249, 238, 0) 62%),
+    var(--surface);
+  border: 1px solid var(--stroke);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow:
+    inset 0 -1px 0 rgba(255, 249, 238, 0.028),
+    0 12px 38px rgba(0, 0, 0, 0.66);
+  will-change: width, height;
+  /* Curseur normal sur le corps du pill. La main n'apparaît que là où le
+     déplacement est l'action attendue, forme compacte et poignée. */
+  cursor: default;
+}
+
+.crest[data-mode="compact"],
+.crest[data-mode="dormant"] {
+  cursor: grab;
+}
+
+/* Détaché, le pill ne porte aucune ombre portée : sur une fenêtre transparente
+   elle se dépose sur le bureau et se lit comme une salissure, surtout au dessus
+   d'un fond clair. La bordure suffit à le détacher du fond. */
+.crest[data-edge="free"] {
+  box-shadow: none;
+}
+
+.crest[data-dragging="true"],
+.crest[data-dragging="true"] * {
+  cursor: grabbing;
+}
+
+/* Accroché à un bord, le pill reste solidaire de celui-ci : la bordure
+   disparaît de ce côté et seuls les angles opposés sont arrondis. Détaché, il
+   redevient une pastille entièrement arrondie. */
+.crest[data-edge="top"] {
+  border-top: none;
+  border-radius: 0 0 20px 20px;
+}
+.crest[data-edge="bottom"] {
+  border-bottom: none;
+  border-radius: 20px 20px 0 0;
+}
+.crest[data-edge="left"] {
+  border-left: none;
+  border-radius: 0 20px 20px 0;
+}
+.crest[data-edge="right"] {
+  border-right: none;
+  border-radius: 20px 0 0 20px;
+}
+
+.crest::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: var(--grain);
+  background-size: 140px 140px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* Insistance : un liseré doré qui respire tant qu'une décision attend, et dont
+   l'amplitude monte passé une trentaine de secondes. Une pression ambiante,
+   sans son supplémentaire ni notification système. */
+.crest::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 4;
+  opacity: 0;
+  transition: opacity 320ms var(--ease);
+}
+
+.crest[data-attention="soft"]::before {
+  box-shadow: inset 0 0 0 1px var(--gold-edge);
+  animation: attention 2.8s var(--ease) infinite;
+}
+
+.crest[data-attention="strong"]::before {
+  box-shadow:
+    inset 0 0 0 1.5px var(--gold),
+    0 0 20px rgba(216, 165, 68, 0.16);
+  animation: attention 1.5s var(--ease) infinite;
+}
+
+@keyframes attention {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Au repos, le pill se réduit à un liseré discret dont l'orientation suit le
+   bord d'accrochage. Détaché, il garde une forme de pastille. */
+.crest[data-mode="dormant"] {
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+.crest[data-mode="dormant"][data-edge="top"] {
+  border-radius: 0 0 8px 8px;
+}
+.crest[data-mode="dormant"][data-edge="bottom"] {
+  border-radius: 8px 8px 0 0;
+}
+.crest[data-mode="dormant"][data-edge="left"] {
+  border-radius: 0 8px 8px 0;
+}
+.crest[data-mode="dormant"][data-edge="right"] {
+  border-radius: 8px 0 0 8px;
+}
+.crest[data-mode="dormant"][data-edge="free"] {
+  border-radius: 999px;
+  box-shadow: none;
+}
+
+.sliver {
+  width: 96px;
+  height: 5px;
+}
+
+.crest[data-edge="left"] .sliver,
+.crest[data-edge="right"] .sliver {
+  width: 5px;
+  height: 96px;
+}
+
+.crest[data-edge="free"] .sliver {
+  width: 84px;
+  height: 9px;
+}
+
+/* Le chevron de repli montre la direction dans laquelle le panneau se rétracte. */
+.icon-btn.collapse svg {
+  transition: transform 160ms var(--ease);
+}
+.crest[data-edge="bottom"] .icon-btn.collapse svg {
+  transform: rotate(180deg);
+}
+.crest[data-edge="left"] .icon-btn.collapse svg {
+  transform: rotate(-90deg);
+}
+.crest[data-edge="right"] .icon-btn.collapse svg {
+  transform: rotate(90deg);
+}
+
+/* ----------------------------------------------------------------- */
+/* Vue compacte                                                      */
+/* ----------------------------------------------------------------- */
+
+.compact {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 16px;
+  white-space: nowrap;
+}
+
+.compact .name {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 20;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+}
+
+.compact .detail {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact .elapsed {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Accroché à gauche ou à droite, le pill se redresse : une capsule verticale
+   est l'orientation naturelle d'un bord latéral, et elle empiète bien moins
+   sur la largeur de l'écran qu'une barre couchée. Le texte suit, en écriture
+   verticale, comme sur les onglets latéraux des navigateurs. */
+.crest[data-edge="left"] .compact,
+.crest[data-edge="right"] .compact {
+  flex-direction: column;
+  width: 36px;
+  height: auto;
+  padding: 15px 0;
+  gap: 11px;
+}
+
+.crest[data-edge="left"] .compact .name,
+.crest[data-edge="left"] .compact .detail,
+.crest[data-edge="left"] .compact .elapsed,
+.crest[data-edge="right"] .compact .name,
+.crest[data-edge="right"] .compact .detail,
+.crest[data-edge="right"] .compact .elapsed {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  max-width: none;
+  max-height: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.crest[data-edge="left"] .compact .detail,
+.crest[data-edge="right"] .compact .detail {
+  max-height: 130px;
+}
+
+/* Déployé depuis un bord latéral, le panneau prend une proportion de barre
+   latérale plutôt que de feuille pleine largeur. */
+.crest[data-edge="left"] .panel,
+.crest[data-edge="right"] .panel {
+  width: 404px;
+}
+
+/* ----------------------------------------------------------------- */
+/* Vue déployée                                                      */
+/* ----------------------------------------------------------------- */
+
+.panel {
+  width: 462px;
+  padding: 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Sans session, le panneau se resserre : garder la pleine largeur pour deux
+   lignes de texte est précisément ce qui donne l'impression d'un panneau vide
+   plutôt que d'un panneau au repos. */
+.panel[data-empty="true"] {
+  width: 306px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 4px 2px;
+}
+
+.empty-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.empty-title {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 22;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.014em;
+  color: var(--text-2);
+}
+
+.empty-text {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--text-3);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  transition:
+    background 130ms var(--ease),
+    border-color 130ms var(--ease);
+  text-align: left;
+  width: 100%;
+}
+
+.row:hover {
+  background: var(--surface-2);
+}
+
+.row[data-selected="true"] {
+  background: var(--surface-2);
+  border-color: var(--stroke-2);
+}
+
+.row .label {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 18;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  flex-shrink: 0;
+}
+
+.row .state {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.row .elapsed {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.row .actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 130ms var(--ease);
+  flex-shrink: 0;
+}
+
+.row:hover .actions {
+  opacity: 1;
+}
+
+/* ----------------------------------------------------------------- */
+/* Cartes de décision                                                */
+/* ----------------------------------------------------------------- */
+
+.card {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 238, 0.026), rgba(255, 249, 238, 0)),
+    var(--surface-2);
+  border: 1px solid var(--stroke);
+  border-radius: 13px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* L'or borde la carte qui attend une décision. C'est le seul endroit de
+   l'interface où il apparaît en surface, et cela suffit à la distinguer. */
+.card[data-kind="permission"] {
+  border-color: var(--gold-edge);
+  background:
+    linear-gradient(180deg, var(--gold-wash), rgba(255, 249, 238, 0) 58%),
+    var(--surface-2);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.card-tool {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 24;
+  font-size: 13.5px;
+  font-weight: 650;
+  letter-spacing: -0.014em;
+}
+
+.card-where {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+  margin-left: auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 210px;
+  text-align: right;
+}
+
+.card-body {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #e7e3da;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 249, 238, 0.045);
+  border-radius: 9px;
+  padding: 9px 11px;
+  max-height: 132px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  cursor: text;
+}
+
+.card-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* ----------------------------------------------------------------- */
+/* Aperçu avant approbation                                          */
+/* ----------------------------------------------------------------- */
+
+.preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 216px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 249, 238, 0.045);
+  border-radius: 9px;
+  padding: 8px 10px;
+}
+
+.preview::-webkit-scrollbar {
+  width: 8px;
+}
+
+.preview::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.preview-label {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.preview-code,
+.preview-plain,
+.preview-note {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: #e7e3da;
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+  cursor: text;
+}
+
+.preview-plain,
+.preview-note {
+  font-family: var(--ui-text);
+  color: var(--text-2);
+}
+
+.preview-clip {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.preview-part + .preview-part {
+  border-top: 1px solid var(--stroke);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+
+/* Différence : les teintes sont très désaturées et chaudes, pour rester dans
+   la matière de l'interface. Une paire rouge et vert franche transformerait un
+   contenu en signalisation, alors que l'or est réservé aux sollicitations. */
+.diff {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  line-height: 1.55;
+  user-select: text;
+  cursor: text;
+}
+
+.diff-row {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px;
+  border-radius: 3px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff-gutter {
+  width: 9px;
+  flex-shrink: 0;
+  color: var(--text-3);
+  text-align: center;
+}
+
+.diff-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.diff-row[data-sign=" "] .diff-text {
+  color: var(--text-2);
+}
+
+.diff-row[data-sign="+"] {
+  background: rgba(160, 196, 130, 0.09);
+}
+
+.diff-row[data-sign="+"] .diff-gutter,
+.diff-row[data-sign="+"] .diff-text {
+  color: #cfdcbe;
+}
+
+.diff-row[data-sign="-"] {
+  background: rgba(206, 128, 106, 0.09);
+}
+
+.diff-row[data-sign="-"] .diff-gutter,
+.diff-row[data-sign="-"] .diff-text {
+  color: #dcc2b8;
+}
+
+.diff-row[data-sign="~"] {
+  justify-content: center;
+  color: var(--text-3);
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  font-style: italic;
+  padding: 3px 0;
+  opacity: 0.7;
+}
+
+.diff-tally {
+  display: flex;
+  gap: 12px;
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  padding-top: 2px;
+}
+
+.diff-tally [data-sign="+"] {
+  color: #cfdcbe;
+}
+
+.diff-tally [data-sign="-"] {
+  color: #dcc2b8;
+}
+
+/* Markdown des plans proposés */
+.preview-md {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  user-select: text;
+  cursor: text;
+}
+
+.md-heading {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 22;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+  color: var(--text);
+}
+
+.md-heading[data-level="1"] {
+  font-size: 14px;
+}
+.md-heading[data-level="2"] {
+  font-size: 13px;
+}
+.md-heading[data-level="3"],
+.md-heading[data-level="4"] {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.md-p {
+  font-family: var(--ui-text);
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-2);
+}
+
+.md-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 2px;
+}
+
+.md-list li {
+  position: relative;
+  padding-left: 14px;
+  font-family: var(--ui-text);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+
+.md-list li::before {
+  content: "";
+  position: absolute;
+  left: 3px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text-3);
+}
+
+.md-code {
+  font-family: var(--mono);
+  font-size: 11px;
+  background: rgba(255, 249, 238, 0.06);
+  border-radius: 4px;
+  padding: 1px 5px;
+  color: var(--text);
+}
+
+.md-pre {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.55;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  padding: 8px 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: #e7e3da;
+}
+
+/* ----------------------------------------------------------------- */
+/* Boutons                                                           */
+/* ----------------------------------------------------------------- */
+
+.btn {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 15px;
+  border-radius: 8px;
+  font-family: var(--ui-text);
+  font-variation-settings: "opsz" 14;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: -0.006em;
+  border: 1px solid var(--stroke-2);
+  background: var(--surface-3);
+  color: var(--text-2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 249, 238, 0.05),
+    0 1px 2px rgba(0, 0, 0, 0.45);
+  transition:
+    color 120ms var(--ease),
+    background 120ms var(--ease),
+    border-color 120ms var(--ease),
+    transform 90ms var(--ease),
+    box-shadow 120ms var(--ease);
+}
+
+/* Le grain vit sur une couche dédiée sous le contenu du bouton. */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--grain);
+  background-size: 140px 140px;
+  opacity: 0.11;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.btn:hover {
+  color: var(--text);
+  border-color: var(--stroke-3);
+  background: var(--surface-4);
+}
+
+.btn:active {
+  transform: translateY(0.5px);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* Action principale : pleine et claire. Aucune teinte, c'est le contraste
+   qui porte la hiérarchie. */
+.btn[data-tone="primary"] {
+  background: linear-gradient(180deg, var(--bone-hi) 0%, var(--bone) 52%, var(--bone-lo) 100%);
+  border-color: rgba(0, 0, 0, 0.5);
+  color: var(--bone-ink);
+  font-weight: 650;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.7),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1),
+    0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+.btn[data-tone="primary"]::before {
+  opacity: 0.16;
+  mix-blend-mode: multiply;
+}
+
+.btn[data-tone="primary"]:hover {
+  background: linear-gradient(180deg, #fffdf8 0%, var(--bone-hi) 52%, var(--bone) 100%);
+  border-color: rgba(0, 0, 0, 0.5);
+  color: var(--bone-ink);
+}
+
+/* Action secondaire : un simple contour. Le refus est le geste sûr, il n'a
+   pas besoin d'être signalé par une couleur d'alarme. */
+.btn[data-tone="quiet"] {
+  background: transparent;
+  border-color: var(--stroke-2);
+  color: var(--text-2);
+  box-shadow: none;
+}
+
+.btn[data-tone="quiet"]:hover {
+  background: var(--surface-3);
+  border-color: var(--stroke-3);
+  color: var(--text);
+}
+
+.btn[data-tone="ghost"] {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--text-3);
+  padding: 0 10px;
+}
+
+.btn[data-tone="ghost"]::before {
+  opacity: 0;
+}
+
+.btn[data-tone="ghost"]:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+
+.btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+  transform: none;
+}
+
+.icon-btn {
+  position: relative;
+  width: 26px;
+  height: 26px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--text-3);
+  border: 1px solid transparent;
+  transition:
+    background 120ms var(--ease),
+    color 120ms var(--ease),
+    border-color 120ms var(--ease);
+}
+
+.icon-btn:hover {
+  background: var(--surface-3);
+  border-color: var(--stroke);
+  color: var(--text);
+}
+
+.icon-btn:active {
+  transform: translateY(0.5px);
+}
+
+/* ----------------------------------------------------------------- */
+/* Journal d'activité                                                */
+/* ----------------------------------------------------------------- */
+
+.feed {
+  display: flex;
+  flex-direction: column;
+  max-height: 178px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+/* Chronologie à filet : une colonne de repères reliés par une hairline
+   neutre. La lecture vient de la forme du repère, pas d'une bande de couleur. */
+.feed-row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding: 4px 7px 4px 20px;
+  border-radius: 6px;
+}
+
+.feed-row::before {
+  content: "";
+  position: absolute;
+  left: 8px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--stroke);
+}
+
+.feed-row:first-child::before {
+  top: 9px;
+}
+
+.feed-row:last-child::before {
+  bottom: auto;
+  height: 9px;
+}
+
+/* Le repère : un point plein pour une étape close, un anneau pour une étape
+   en cours, un anneau doré pour une étape qui vous attend. */
+.feed-row::after {
+  content: "";
+  position: absolute;
+  left: 5.5px;
+  top: 8px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--text-3);
+}
+
+.feed-row[data-state="running"]::after {
+  box-shadow: inset 0 0 0 1.5px var(--text);
+  animation: breathe 1.9s var(--ease) infinite;
+}
+
+.feed-row[data-state="pending"]::after {
+  background: var(--gold);
+  box-shadow: 0 0 0 2.5px var(--gold-wash);
+}
+
+.feed-row[data-state="done"]::after {
+  background: var(--text-3);
+  box-shadow: none;
+}
+
+/* Sous-agent : décalé sur la droite et marqué d'un repère creux, pour se
+   distinguer d'un appel d'outil ordinaire sans recourir à une couleur. */
+.feed-row[data-kind="subagent"] {
+  padding-left: 32px;
+}
+
+.feed-row[data-kind="subagent"]::after {
+  left: 17px;
+  width: 7px;
+  height: 7px;
+  box-shadow: inset 0 0 0 1.5px var(--text-2);
+}
+
+.feed-row[data-kind="subagent"] .feed-tool {
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.feed-time {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-tool {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.feed-detail {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.feed-detail[data-kind="prompt"] {
+  font-family: var(--ui-text);
+  color: var(--text);
+  font-size: 11.5px;
+}
+
+.feed-meta {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.feed-meta[data-outcome="refusé"],
+.feed-meta[data-outcome="abandonné"],
+.feed-meta[data-outcome="expiré"] {
+  color: var(--text-2);
+  font-style: italic;
+}
+
+.feed-meta[data-outcome="approuvé"] {
+  color: var(--text-2);
+}
+
+.feed-empty {
+  font-family: var(--ui-text);
+  font-size: 11.5px;
+  color: var(--text-3);
+  padding: 8px 7px;
+}
+
+/* Journal replié pendant qu'une décision attend : une ligne, un chevron. */
+.feed-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--stroke);
+  background: transparent;
+  color: var(--text-3);
+  transition:
+    background 130ms var(--ease),
+    border-color 130ms var(--ease),
+    color 130ms var(--ease);
+}
+
+.feed-toggle:hover {
+  background: var(--surface-2);
+  border-color: var(--stroke-2);
+  color: var(--text-2);
+}
+
+.feed-toggle-text {
+  flex: 1;
+  text-align: left;
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+}
+
+/* Le chevron de repli pointe vers le haut : ici il faut l'inverse, on déplie. */
+.feed-toggle svg {
+  transform: rotate(180deg);
+}
+
+/* Rappel des touches, visible seulement après une convocation au clavier. */
+.keyhint {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+kbd {
+  font-family: var(--mono);
+  font-size: 10px;
+  line-height: 1;
+  color: var(--text-2);
+  background: var(--surface-3);
+  border: 1px solid var(--stroke-2);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+
+/* Barres de défilement discrètes, communes au journal et aux blocs de code. */
+.feed::-webkit-scrollbar,
+.card-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.feed::-webkit-scrollbar-thumb,
+.card-body::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+/* ----------------------------------------------------------------- */
+/* En-tête de session dépliée                                        */
+/* ----------------------------------------------------------------- */
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 3px 1px;
+}
+
+.detail-title {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 22;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.014em;
+}
+
+.detail-meta {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- */
+/* Questions                                                         */
+/* ----------------------------------------------------------------- */
+
+.question-block {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.question-header {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  font-weight: 650;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.question-title {
+  font-family: var(--ui-text);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.question-note {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+.option-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Options empilées dès qu'elles portent une description ou qu'elles se
+   cumulent : la largeur sert au texte, et la lecture verticale rend le cumul
+   évident. En ligne, des puces de hauteurs inégales se lisent mal. */
+.option-list[data-stacked="true"] {
+  flex-direction: column;
+  flex-wrap: nowrap;
+}
+
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-family: var(--ui-text);
+  font-size: 11.5px;
+  color: var(--text-2);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--stroke);
+  border-radius: 7px;
+  padding: 6px 11px;
+  text-align: left;
+  transition:
+    background 120ms var(--ease),
+    border-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+
+.option-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.option-label {
+  line-height: 1.35;
+}
+
+.option-desc {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+
+.option[data-picked="true"] .option-desc {
+  color: rgba(21, 19, 15, 0.62);
+}
+
+/* Case à cocher des questions à réponses multiples. */
+.option-mark {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 4px;
+  border: 1px solid var(--stroke-2);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--bone-ink);
+}
+
+.option[data-picked="true"] .option-mark {
+  background: var(--bone-ink);
+  border-color: transparent;
+  color: var(--bone);
+}
+
+.option[data-other="true"] .option-label {
+  font-style: italic;
+}
+
+/* Champ de réponse libre, révélé quand « Autre » est retenu. */
+.other-input {
+  width: 100%;
+  height: 30px;
+  border-radius: 7px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--stroke-2);
+  color: var(--text);
+  padding: 0 10px;
+  font-family: var(--ui-text);
+  font-size: 12px;
+}
+
+.other-input::placeholder {
+  color: var(--text-3);
+}
+
+.other-input:focus {
+  outline: none;
+  border-color: var(--stroke-3);
+}
+
+.option:hover:not(:disabled) {
+  border-color: var(--stroke-3);
+  color: var(--text);
+}
+
+/* Le choix retenu prend la matière claire du bouton principal : c'est la même
+   grammaire que les actions, la sélection se lit au contraste. */
+.option[data-picked="true"] {
+  background: var(--bone);
+  border-color: rgba(0, 0, 0, 0.4);
+  color: var(--bone-ink);
+  font-weight: 600;
+}
+
+/* Le survol du choix retenu doit être plus spécifique que le survol générique,
+   sinon ce dernier l'emporte et repasse le texte en clair sur fond clair. */
+.option[data-picked="true"]:hover:not(:disabled) {
+  background: var(--bone-hi);
+  border-color: rgba(0, 0, 0, 0.45);
+  color: var(--bone-ink);
+}
+
+.option:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Poignée de déplacement, trois traits courts. Discrète mais explicite. */
+.grip {
+  display: inline-flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 3px;
+  width: 18px;
+  height: 26px;
+  padding: 0 4px;
+  cursor: grab;
+  opacity: 0.45;
+  transition: opacity 120ms var(--ease);
+}
+
+.grip:hover {
+  opacity: 0.9;
+}
+
+.grip i {
+  display: block;
+  height: 1.5px;
+  border-radius: 1px;
+  background: var(--text-3);
+}
+
+.grip i:nth-child(2) {
+  width: 70%;
+}
+
+.hint {
+  font-family: var(--ui-text);
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.55;
+}
+
+.notice {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--gold-hi);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--gold-wash);
+  border: 1px solid var(--gold-edge);
+}
+
+/* ----------------------------------------------------------------- */
+/* Pied de panneau                                                   */
+/* ----------------------------------------------------------------- */
+
+.foot {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-top: 1px solid var(--stroke);
+  padding: 9px 3px 0;
+}
+
+.foot .spacer {
+  flex: 1;
+}
+
+.badge {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+  color: var(--text-3);
+  border: 1px solid var(--stroke);
+  border-radius: 5px;
+  padding: 2.5px 7px;
+}
+
+.badge[data-on="true"],
+.badge[data-tone="queue"] {
+  color: var(--gold-hi);
+  border-color: var(--gold-edge);
+  background: var(--gold-wash);
+}
+
+/* ----------------------------------------------------------------- */
+/* Pastille de statut                                                */
+/* ----------------------------------------------------------------- */
+
+.dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--text-3);
+}
+
+/* L'activité se signale par le mouvement, pas par une teinte. */
+.dot[data-status="working"] {
+  background: var(--text);
+  animation: breathe 1.9s var(--ease) infinite;
+}
+
+.dot[data-status="attention"],
+.dot[data-status="question"],
+.dot[data-status="waiting"] {
+  background: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-wash);
+}
+
+.dot[data-status="idle"] {
+  background: var(--text-3);
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot[data-status="working"],
+  .feed-row[data-state="running"]::after {
+    animation: none;
+  }
+}
+
+/* ----------------------------------------------------------------- */
+/* Fenêtre de paramètres                                             */
+/* ----------------------------------------------------------------- */
+
+.settings {
+  padding: 24px 26px 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 520px;
+}
+
+.settings h1 {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 36;
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.settings h2 {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--text-3);
+  margin-bottom: 10px;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+}
+
+.field {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--stroke);
+}
+
+.field:last-child {
+  border-bottom: none;
+}
+
+.field .text {
+  flex: 1;
+}
+
+.field .text .name {
+  font-family: var(--ui-text);
+  font-size: 13px;
+}
+
+.field .text .desc {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-top: 3px;
+  line-height: 1.5;
+}
+
+.switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--surface-3);
+  border: 1px solid var(--stroke-2);
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.4);
+  transition:
+    background 150ms var(--ease),
+    border-color 150ms var(--ease);
+}
+
+.switch[data-on="true"] {
+  background: linear-gradient(180deg, var(--bone-hi), var(--bone-lo));
+  border-color: rgba(0, 0, 0, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #d9d4c9;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  transition:
+    transform 150ms var(--ease),
+    background 150ms var(--ease);
+}
+
+.switch[data-on="true"]::after {
+  transform: translateX(18px);
+  background: var(--surface);
+}
+
+.num {
+  width: 88px;
+  height: 30px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke-2);
+  color: var(--text);
+  padding: 0 9px;
+  font-family: var(--mono);
+  font-size: 12px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.num:focus {
+  outline: none;
+  border-color: var(--stroke-3);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.chip {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-radius: 7px;
+  padding: 6px 11px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+  color: var(--text-3);
+  transition:
+    background 120ms var(--ease),
+    border-color 120ms var(--ease),
+    color 120ms var(--ease);
+}
+
+.chip:hover {
+  border-color: var(--stroke-2);
+  color: var(--text-2);
+}
+
+/* Sélection : de la matière claire, pas une couleur d'état. */
+.chip[data-on="true"] {
+  background: var(--bone);
+  border-color: rgba(0, 0, 0, 0.4);
+  color: var(--bone-ink);
+  font-weight: 600;
+}
+
+.chip[data-on="true"]:hover {
+  background: var(--bone-hi);
+  border-color: rgba(0, 0, 0, 0.45);
+  color: var(--bone-ink);
+}
+
+.status-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--ui-text);
+  font-size: 12.5px;
+  padding: 11px 13px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.status-line[data-ok="false"] {
+  border-color: var(--gold-edge);
+  background: var(--gold-wash);
+}
+
+.mono-path {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-3);
+  user-select: text;
+  word-break: break-all;
+}
+
+/* ----------------------------------------------------------------- */
+/* Mise en route                                                     */
+/* ----------------------------------------------------------------- */
+
+.onboarding {
+  min-height: 100%;
+  padding: 28px 30px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.ob-top {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.ob-mark {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--text-2);
+  flex: 1;
+}
+
+.ob-count {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.ob-count-sep {
+  opacity: 0.55;
+}
+
+/* Un filet unique qui se remplit, plutôt que quatre libellés côte à côte :
+   l'avancement se lit d'un regard sans avoir à comparer des états. */
+.ob-rail {
+  height: 2px;
+  border-radius: 1px;
+  background: var(--stroke);
+  overflow: hidden;
+}
+
+.ob-rail-fill {
+  display: block;
+  height: 100%;
+  background: var(--bone);
+  transition: width 320ms var(--ease);
+}
+
+.ob-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 6px;
+}
+
+/* L'objet même de l'application, présenté avec ses propres styles. */
+.ob-stage {
+  display: flex;
+  justify-content: center;
+  padding: 22px 0 10px;
+}
+
+.ob-stage .crest {
+  position: relative;
+}
+
+.ob-title {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 44;
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+}
+
+.ob-lead {
+  font-family: var(--ui-text);
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-2);
+  max-width: 44ch;
+}
+
+.ob-aside {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text-3);
+  max-width: 48ch;
+}
+
+.ob-links {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.ob-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.ob-link[data-ok="true"] {
+  border-color: var(--stroke-2);
+}
+
+.ob-link-label {
+  flex: 1;
+  font-family: var(--ui-text);
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.ob-link[data-ok="true"] .ob-link-label {
+  color: var(--text);
+}
+
+.ob-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ob-legend {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.085em;
+  color: var(--text-3);
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.choice {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  text-align: left;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+  transition:
+    background 130ms var(--ease),
+    border-color 130ms var(--ease);
+}
+
+.choice:hover {
+  border-color: var(--stroke-2);
+}
+
+.choice[data-on="true"] {
+  background: var(--surface-4);
+  border-color: var(--stroke-3);
+  box-shadow: inset 0 0 0 1px var(--stroke);
+}
+
+.choice-label {
+  font-family: var(--ui-text);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+.choice[data-on="true"] .choice-label {
+  color: var(--text);
+}
+
+.choice-desc {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+
+/* Rappel des touches de l'écran final. */
+.ob-keys {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.ob-key {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.ob-key dt {
+  display: flex;
+  gap: 4px;
+  width: 108px;
+  flex-shrink: 0;
+}
+
+.ob-key dd {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11.5px;
+  color: var(--text-3);
+}
+
+.ob-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 16px;
+}
+
+/* ----------------------------------------------------------------- */
+/* Consommation                                                      */
+/* ----------------------------------------------------------------- */
+
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.usage-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.usage-title {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 20;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.012em;
+}
+
+.usage-turns {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-3);
+  flex: 1;
+}
+
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.usage-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 11px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.usage-cell[data-dim="true"] {
+  opacity: 0.62;
+}
+
+.usage-value {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 24;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.usage-label {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.usage-day {
+  font-family: var(--ui-text);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.usage-models {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border-top: 1px solid var(--stroke);
+  padding-top: 10px;
+}
+
+.usage-model {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.usage-model-name {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--text-2);
+  flex: 1;
+}
+
+.usage-model-value {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------- */
+/* Surface flottante de consommation                                 */
+/* ----------------------------------------------------------------- */
+
+.usage-panel {
+  position: relative;
+  isolation: isolate;
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  background:
+    linear-gradient(180deg, rgba(255, 249, 238, 0.03), rgba(255, 249, 238, 0) 42%),
+    var(--surface);
+  border: 1px solid var(--stroke-2);
+  border-radius: 16px;
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.6);
+}
+
+.usage-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: var(--grain);
+  background-size: 140px 140px;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.usage-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.usage-panel::-webkit-scrollbar-thumb {
+  background: var(--surface-4);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+.u-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.u-title {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 28;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.018em;
+}
+
+.u-hero {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.u-hero-value {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 40;
+  font-size: 34px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1;
+  color: var(--claude);
+  font-variant-numeric: tabular-nums;
+}
+
+.u-hero-unit {
+  font-family: var(--ui-text);
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.u-hero-turns {
+  margin-left: auto;
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Barre de composition : des parts, pas un pourcentage d'un quota inventé. */
+.u-bar {
+  display: flex;
+  gap: 2px;
+  height: 12px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.u-seg {
+  min-width: 3px;
+  border-radius: 3px;
+}
+
+.u-seg[data-tone="output"] {
+  background: var(--u-output);
+}
+.u-seg[data-tone="input"] {
+  background: var(--u-input);
+}
+.u-seg[data-tone="cache-write"] {
+  background: var(--u-cache-write);
+}
+.u-seg[data-tone="cache-read"] {
+  background: var(--u-cache-read);
+}
+
+.u-legend {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 14px;
+}
+
+.u-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.u-chip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2.5px;
+  flex-shrink: 0;
+}
+
+.u-chip[data-tone="output"] {
+  background: var(--u-output);
+}
+.u-chip[data-tone="input"] {
+  background: var(--u-input);
+}
+.u-chip[data-tone="cache-write"] {
+  background: var(--u-cache-write);
+}
+.u-chip[data-tone="cache-read"] {
+  background: var(--u-cache-read);
+}
+
+.u-legend-label {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-3);
+  flex: 1;
+}
+
+.u-legend-value {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.u-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--stroke);
+}
+
+.u-block-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.u-block-title {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.085em;
+  color: var(--text-3);
+  flex: 1;
+}
+
+.u-block-value {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.u-meter {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.u-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--text-3);
+  transition: width 320ms var(--ease);
+}
+
+.u-meter-fill[data-tone="output"] {
+  background: linear-gradient(90deg, var(--u-input), var(--u-output));
+}
+
+.u-note {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+.u-model {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.u-model-name {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-2);
+  width: 128px;
+  flex-shrink: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.u-model-bar {
+  flex: 1;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.u-model-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--u-output);
+}
+
+.u-model-value {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 11px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+  width: 52px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.u-tally {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.u-tally-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 10px;
+  border-radius: 9px;
+  background: var(--surface-2);
+  border: 1px solid var(--stroke);
+}
+
+.u-tally-value {
+  font-family: var(--ui-display);
+  font-variation-settings: "opsz" 24;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.022em;
+  font-variant-numeric: tabular-nums;
+}
+
+.u-tally-label {
+  font-family: var(--ui-small);
+  font-variation-settings: "opsz" 8;
+  font-size: 10px;
+  color: var(--text-3);
+  line-height: 1.3;
+}
+
