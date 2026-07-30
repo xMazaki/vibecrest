@@ -2103,11 +2103,13 @@ kbd {
   letter-spacing: -0.018em;
 }
 
+/* Le libellé tient sur deux lignes et le nombre sur une : un alignement sur la
+   ligne de base ferait retomber l'ensemble sous le chiffre. Les deux blocs
+   font sensiblement la même hauteur, un centrage vertical les met d'aplomb. */
 .u-hero {
   display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: center;
+  gap: 12px;
 }
 
 .u-hero-value {
@@ -2116,24 +2118,28 @@ kbd {
   font-size: 34px;
   font-weight: 650;
   letter-spacing: -0.035em;
-  line-height: 1;
+  line-height: 0.95;
   color: var(--claude);
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .u-hero-unit {
   font-family: var(--ui-text);
   font-size: 12px;
+  line-height: 1.4;
   color: var(--text-2);
 }
 
 .u-hero-turns {
   margin-left: auto;
+  align-self: flex-start;
   font-family: var(--ui-small);
   font-variation-settings: "opsz" 8;
   font-size: 11px;
   color: var(--text-3);
   font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 /* Barre de composition : des parts, pas un pourcentage d'un quota inventé. */
