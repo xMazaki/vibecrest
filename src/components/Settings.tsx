@@ -175,11 +175,13 @@ export function Settings() {
 
   const hookState = hooks.error
     ? hooks.error
-    : hooks.installed
-      ? "Hooks actifs sur les six événements de Claude Code."
-      : hooks.partial
-        ? "Installation partielle, réinstallez pour compléter."
-        : "Hooks absents, Vibe Crest ne recevra aucun événement.";
+    : (hooks.installed || hooks.partial) && !hooks.scriptPresent
+      ? "Hooks enregistrés mais script manquant. Réinstallez, sinon Claude Code signalera une erreur à chaque événement."
+      : hooks.installed
+        ? "Hooks actifs sur les sept événements de Claude Code."
+        : hooks.partial
+          ? "Installation partielle, réinstallez pour compléter."
+          : "Hooks absents, Vibe Crest ne recevra aucun événement.";
 
   return (
     <div className="settings">
@@ -207,6 +209,10 @@ export function Settings() {
         <div className="hint" style={{ paddingTop: 12 }}>
           L'installation sauvegarde votre <span className="mono-path">~/.claude/settings.json</span>{" "}
           avant toute écriture, et refuse de continuer si le fichier est illisible.
+        </div>
+        <div className="hint" style={{ paddingTop: 8 }}>
+          Avant de désinstaller Vibe Crest, utilisez <strong>Retirer</strong>. Des hooks laissés
+          enregistrés sans leur script feraient signaler une erreur à chaque réponse de Claude Code.
         </div>
       </div>
 

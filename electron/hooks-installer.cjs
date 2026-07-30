@@ -46,14 +46,32 @@ function stageHookScript(sourcePath) {
 }
 
 /**
- * Remet à jour la copie du script de hook si l'application en embarque une
- * version différente. Sans cela, une mise à jour de Vibe Crest laisserait en
- * place l'ancien script et les nouveautés du protocole passeraient à la trappe
- * jusqu'à ce que l'utilisateur pense à réinstaller.
+ * Aligne la copie du script de hook sur celle qu'embarque l'application.
+ *
+ * Deux cas sont traités, et le second est le plus important.
+ *
+ * Mise à jour : sans cette remise à niveau, une nouvelle version de Vibe Crest
+ * laisserait en place l'ancien script et les nouveautés du protocole
+ * passeraient à la trappe.
+ *
+ * Réparation : si le script a disparu alors que ses appels restent inscrits
+ * dans les réglages de Claude Code, chaque événement produirait une trace
+ * d'erreur dans la conversation. C'est ce qui arrive quand on supprime le
+ * dossier de l'application, ou qu'on la désinstalle sans retirer les hooks au
+ * préalable. On restaure alors le fichier au lieu de laisser la situation
+ * pourrir en silence.
  */
 function refreshHookScript(sourcePath) {
   try {
-    if (!fs.existsSync(HOOK_SCRIPT)) return { refreshed: false, reason: "absent" };
+    if (!fs.existsSync(HOOK_SCRIPT)) {
+      const registered = status();
+      if (!registered.installed && !registered.partial) {
+        return { refreshed: false, reason: "absent" };
+      }
+      stageHookScript(sourcePath);
+      return { refreshed: true, repaired: true };
+    }
+
     const current = fs.readFileSync(HOOK_SCRIPT, "utf8");
     const next = fs.readFileSync(sourcePath, "utf8");
     if (current === next) return { refreshed: false, reason: "identique" };

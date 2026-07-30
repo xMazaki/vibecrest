@@ -729,7 +729,9 @@ if (!app.requestSingleInstanceLock()) {
       ? path.join(process.resourcesPath, "agent-hook.cjs")
       : path.join(__dirname, "agent-hook.cjs");
     const refresh = hooksInstaller.refreshHookScript(hookSource);
-    if (refresh.refreshed) {
+    if (refresh.repaired) {
+      console.log("Script de hook manquant, restauré : Claude Code aurait signalé une erreur à chaque événement.");
+    } else if (refresh.refreshed) {
       console.log("Script de hook mis à jour, la prochaine session en profitera.");
     }
 
