@@ -15,7 +15,8 @@
     "dist": "npm run build && electron-builder --win nsis",
     "test": "node test/placement.test.cjs",
     "preview:view": "electron scripts/preview-view.cjs",
-    "hero": "electron scripts/make-hero.cjs"
+    "hero": "electron scripts/make-hero.cjs",
+    "social": "electron scripts/make-social.cjs"
   },
   "dependencies": {
     "framer-motion": "^11.15.0",
